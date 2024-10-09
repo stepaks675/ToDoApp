@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <title>react noliki krestiki</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      function useControl(){
+        let data=Object.entries(localStorage).map(item => { return {...JSON.parse(item[1]), id: item[0]}})
+        const [currentDate, setCurrentDate] = React.useState(Date.now())
+        const [isFormOpen, setFormOpen]=React.useState(false)
+        const [tasks, setTasks]= React.useState(data);
+        
+        function onDelete(id){
+          setTasks(tasks.filter(item => item.id!=id))
+          delete localStorage[id]
+        }
+        function onComplete(id){
+          setTasks(tasks.map(task => task.id == id ? {...task, isCompleted:true} : {...task}))
+          localStorage[id]=JSON.stringify({...JSON.parse(localStorage[id]), isCompleted: true})
+        }
+        function onCreate(task, deadline){
+          let id = Number(tasks[tasks.length-1]?.id)+1 || "1";
+          setTasks([...tasks, {id, desc: task, isCompleted:false, deadline:deadline}])
+          localStorage.setItem(String(id), JSON.stringify({desc: task, isCompleted:false, deadline:deadline}))
+        }
+        function openForm(){
+          setFormOpen(true)
+        }
+        function closeForm(){
+          setFormOpen(false)
+        }
+
+        return {
+          currentDate,
+          onDelete,
+          onComplete,
+          onCreate,
+          openForm,
+          closeForm,
+          tasks,
+          isFormOpen
+        }
+      }
+      function App() {
+
+        let {currentDate,
+          onDelete,
+          onComplete,
+          onCreate,
+          openForm,
+          closeForm,
+          tasks,
+          isFormOpen } = useControl();
+        
+        console.log(isFormOpen)
+        return(
+          <div className="appBody">
+            <div className="taskList">
+              <TaskListHeader onCreate={onCreate} isFormOpen ={isFormOpen} openForm={openForm} closeForm={closeForm}/>
+              <div className="taskListBody">
+            {tasks.map(task=><Task task={task} onComplete={onComplete} onDelete={onDelete}/>)}
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+
+      function TaskListHeader({onCreate, isFormOpen, openForm, closeForm}){
+        return (
+          <div className="taskListHeader">
+            <button className="addTaskButton" onClick={()=>openForm()}>
+              Создать задачу
+            </button>
+            {isFormOpen && <NewTaskForm onCreate={onCreate} closeForm={closeForm}/>}
+          </div>
+        )
+      }
+
+      function NewTaskForm({onCreate, closeForm}){
+
+        const [inputVal, setInputVal] = React.useState(null);
+        const [deadlineVal, setDeadlineVal] = React.useState(null);
+
+        function handleInputChange(event){
+          setInputVal(event.target.value)
+        }
+        function handleDeadlineChange(event){
+          setDeadlineVal(event.target.value)
+        }
+
+          return (
+            <div className="newTaskForm">
+              <button className="closeTaskFormButton" onClick={()=>closeForm()}> X </button>
+              <textarea className="inputTaskForm" value={inputVal} onChange={handleInputChange} placeHolder="Введите задачу"/>
+              <label className="deadlineLabel">Установите дедлайн*</label>
+              <input type="date" className="deadlineForm" value={deadlineVal} onChange={handleDeadlineChange}/>
+              <button className="createTaskButton" onClick={()=>onCreate(inputVal,deadlineVal)}>Создать</button>
+            </div>
+          )
+      }
+
+      function Task({task, onComplete, onDelete}){
+          return (
+            <div className="taskBox">
+              <input className="taskCheckBox" type="checkbox" checked= {task.isCompleted} onChange={()=>onComplete(task.id)}/>
+              <span 
+              className="taskSpan" 
+              style={{textDecoration: task.isCompleted ? "line-through" : "none",
+                color: task.isCompleted ? "green" : "black"
+              }}>
+              {task.desc}
+              </span>
+              <br/>
+              <span className="deadlineSpan">
+                {`Дедлайн: ${task.deadline}`}
+              </span>
+              <br/>
+              <button className="taskDeleteButton" onClick={()=>onDelete(task.id)}>Удалить задачу</button>
+            </div>
+          )
+      }
+
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
