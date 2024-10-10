@@ -19,14 +19,14 @@
         const [isFormOpen, setFormOpen]=React.useState(false)
         const [tasks, setTasks]= React.useState(data);
         
-        function onDelete(id){
+        const onDelete = React.useCallback((id)=>{
           setTasks(tasks.filter(item => item.id!=id))
           delete localStorage[id]
-        }
-        function onComplete(id){
+        },[tasks])
+        const onComplete = React.useCallback((id)=>{
           setTasks(tasks.map(task => task.id == id ? {...task, isCompleted:true} : {...task}))
           localStorage[id]=JSON.stringify({...JSON.parse(localStorage[id]), isCompleted: true})
-        }
+        },[tasks])
         function onCreate(task, deadline){
           let id = Number(tasks[tasks.length-1]?.id)+1 || "1";
           setTasks([...tasks, {id, desc: task, isCompleted:false, deadline:deadline}])
@@ -60,14 +60,13 @@
           closeForm,
           tasks,
           isFormOpen } = useControl();
-        
-        console.log(isFormOpen)
+        React.useEffect(()=>{console.log('главный компонент смонтирован')})
         return(
           <div className="appBody">
             <div className="taskList">
               <TaskListHeader onCreate={onCreate} isFormOpen ={isFormOpen} openForm={openForm} closeForm={closeForm}/>
               <div className="taskListBody">
-            {tasks.map(task=><Task task={task} onComplete={onComplete} onDelete={onDelete}/>)}
+              {tasks.map((task,index)=><Task key={index} task={task} onComplete={onComplete} onDelete={onDelete}/>)}
               </div>
             </div>
           </div>
@@ -101,7 +100,7 @@
           return (
             <div className="newTaskForm">
               <button className="closeTaskFormButton" onClick={()=>closeForm()}> X </button>
-              <textarea className="inputTaskForm" value={inputVal} onChange={handleInputChange} placeHolder="Введите задачу"/>
+              <textarea className="inputTaskForm" value={inputVal} onChange={handleInputChange} placeholder="Введите задачу"/>
               <label className="deadlineLabel">Установите дедлайн*</label>
               <input type="date" className="deadlineForm" value={deadlineVal} onChange={handleDeadlineChange}/>
               <button className="createTaskButton" onClick={()=>onCreate(inputVal,deadlineVal)}>Создать</button>
@@ -109,7 +108,11 @@
           )
       }
 
-      function Task({task, onComplete, onDelete}){
+      const Task = React.memo(({task, onComplete, onDelete}) =>{
+        React.useEffect(()=>{
+          console.log(`Задача ${task.id} смонтирована`)
+          return ()=>{console.log(`Задача ${task.id} демонтирована`)}
+        })
           return (
             <div className="taskBox">
               <input className="taskCheckBox" type="checkbox" checked= {task.isCompleted} onChange={()=>onComplete(task.id)}/>
@@ -128,7 +131,7 @@
               <button className="taskDeleteButton" onClick={()=>onDelete(task.id)}>Удалить задачу</button>
             </div>
           )
-      }
+      })
 
 
       const root = ReactDOM.createRoot(document.getElementById("root"));
